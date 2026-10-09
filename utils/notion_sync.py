@@ -48,22 +48,22 @@ CATEGORIAS_CONFIG = {
     }
 }
 
-def normalizar_categoria(cat_raw: str) -> tuple[str, str, str, Optional[str]]:
+def normalizar_categoria(cat_raw: str, titulo: str = "", subcategoria: str = "") -> tuple[str, str, str, Optional[str]]:
     """Retorna o nome formatado, emoji, imagem de capa e ID fixo da subpágina."""
-    cat_lower = (cat_raw or "").lower()
-    if any(k in cat_lower for k in ["lugar", "sp", "são paulo", "café", "restaurante", "roteiro", "passeio"]):
+    texto_busca = f"{cat_raw} {titulo} {subcategoria}".lower()
+    if any(k in texto_busca for k in ["lugar", "sp", "são paulo", "café", "restaurante", "roteiro", "passeio"]):
         conf = CATEGORIAS_CONFIG["Lugares em SP"]
         return conf["nome"], conf["emoji"], conf["cover"], conf.get("page_id")
-    elif any(k in cat_lower for k in ["reforma", "apartamento", "apê", "obra", "decoração"]):
+    elif any(k in texto_busca for k in ["reforma", "apartamento", "apê", "obra", "construir", "construção", "decoração", "marcenaria", "gesso", "tomada"]):
         conf = CATEGORIAS_CONFIG["Reforma & Apartamento"]
         return conf["nome"], conf["emoji"], conf["cover"], conf.get("page_id")
-    elif any(k in cat_lower for k in ["culinária", "receita", "doce", "bolo", "cozinha"]):
+    elif any(k in texto_busca for k in ["culinária", "receita", "doce", "bolo", "cozinha", "prato"]):
         conf = CATEGORIAS_CONFIG["Culinária & Receitas"]
         return conf["nome"], conf["emoji"], conf["cover"], conf.get("page_id")
-    elif any(k in cat_lower for k in ["treino", "saúde", "fitness", "exercício", "dieta"]):
+    elif any(k in texto_busca for k in ["treino", "saúde", "fitness", "exercício", "dieta", "musculação"]):
         conf = CATEGORIAS_CONFIG["Treino & Saúde"]
         return conf["nome"], conf["emoji"], conf["cover"], conf.get("page_id")
-    elif any(k in cat_lower for k in ["finança", "investimento", "dinheiro", "economia"]):
+    elif any(k in texto_busca for k in ["finança", "investimento", "dinheiro", "economia"]):
         conf = CATEGORIAS_CONFIG["Finanças"]
         return conf["nome"], conf["emoji"], conf["cover"], conf.get("page_id")
 
@@ -230,8 +230,8 @@ def sincronizar_com_notion(dica: Dict[str, Any]) -> bool:
     try:
         titulo = dica.get("titulo") or "Nova Anotação"
         categoria_raw = dica.get("categoria", "Dicas Gerais")
-        nome_cat_formatada, emoji_cat, cover_cat, pre_page_id = normalizar_categoria(categoria_raw)
         subcategoria = dica.get("subcategoria") or ""
+        nome_cat_formatada, emoji_cat, cover_cat, pre_page_id = normalizar_categoria(categoria_raw, titulo=titulo, subcategoria=subcategoria)
         url_post = dica.get("url", "")
         autor = dica.get("autor", "Instagram")
         resumo = dica.get("resumo_executivo", "")

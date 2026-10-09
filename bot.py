@@ -98,7 +98,7 @@ async def processar_mensagem(update: Update, context: ContextTypes.DEFAULT_TYPE)
 
         # 2. Transcrição de Áudio se houver vídeo/som
         if midia_path:
-            await msg_status.edit_text("🎙️ Transcrevendo áudio do vídeo via Azure Speech AI...")
+            await msg_status.edit_text("🎙️ Transcrevendo áudio e lendo telas do vídeo com IA...")
             transcricao = transcrever_audio(midia_path)
         elif info_ig.get("imagens_bytes"):
             qtd_slides = len(info_ig.get("imagens_bytes"))

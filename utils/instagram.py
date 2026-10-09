@@ -26,6 +26,42 @@ def extrair_shortcode(url: str) -> Optional[str]:
         return match.group(1)
     return None
 
+def extrair_frames_do_video(video_path: str, max_frames: int = 4) -> List[bytes]:
+    """Extrai frames distribuídos ao longo do vídeo para leitura visual de textos na tela."""
+    frames_bytes: List[bytes] = []
+    if not video_path or not os.path.exists(video_path):
+        return frames_bytes
+
+    try:
+        import io
+        import av
+        from PIL import Image
+
+        container = av.open(video_path)
+        if not container.streams.video:
+            return frames_bytes
+
+        video = container.streams.video[0]
+        total_frames = video.frames or 150
+        step = max(1, total_frames // (max_frames + 1))
+
+        count = 0
+        for idx, frame in enumerate(container.decode(video=0)):
+            if idx > 0 and idx % step == 0:
+                img = frame.to_image()
+                img.thumbnail((720, 720))
+                buf = io.BytesIO()
+                img.save(buf, format="JPEG", quality=85)
+                frames_bytes.append(buf.getvalue())
+                count += 1
+                if count >= max_frames:
+                    break
+        container.close()
+    except Exception as e:
+        logger.warning(f"Erro ao extrair frames do vídeo ({video_path}): {e}")
+
+    return frames_bytes
+
 def processar_link_instagram(url: str) -> Dict[str, Any]:
     """
     Extrai metadados, legendas, áudio (se vídeo) e imagens dos slides (se carrossel/foto).
@@ -66,7 +102,6 @@ def processar_link_instagram(url: str) -> Dict[str, Any]:
             if post.typename == "GraphSidecar":
                 logger.info(f"Post identificado como CARROSSEL DE FOTOS ({shortcode}). Baixando imagens dos slides...")
                 nodes = list(post.get_sidecar_nodes())
-                # Pega até 8 slides para leitura visual com IA
                 for node in nodes[:8]:
                     img_url = node.display_url
                     if img_url:
@@ -94,7 +129,7 @@ def processar_link_instagram(url: str) -> Dict[str, Any]:
         except Exception as e_insta:
             logger.warning(f"Instaloader não conseguiu processar diretamente ({e_insta}). Tentando via yt-dlp...")
 
-    # 2. Se for Vídeo/Reels (ou fallback), usa yt-dlp para baixar áudio
+    # 2. Se for Vídeo/Reels (ou fallback), usa yt-dlp para baixar vídeo e áudio
     identificador = str(uuid.uuid4())[:8]
     output_template = os.path.join(TEMP_MEDIA_DIR, f"ig_{identificador}.%(ext)s")
 
@@ -102,7 +137,7 @@ def processar_link_instagram(url: str) -> Dict[str, Any]:
         'outtmpl': output_template,
         'quiet': True,
         'no_warnings': True,
-        'format': 'bestaudio/best',
+        'format': 'best[height<=720]/best',
         'ignoreerrors': True,
     }
 
@@ -117,10 +152,15 @@ def processar_link_instagram(url: str) -> Dict[str, Any]:
                 if resultado["autor"] == "Instagram":
                     resultado["autor"] = info.get("uploader", "") or info.get("channel", "") or "Instagram"
 
-                for ext in ["mp4", "m4a", "webm", "mp3", "ogg"]:
+                for ext in ["mp4", "mkv", "webm", "m4a", "mp3"]:
                     candidato = os.path.join(TEMP_MEDIA_DIR, f"ig_{identificador}.{ext}")
                     if os.path.exists(candidato):
                         resultado["arquivo_midia"] = candidato
+                        if ext in ["mp4", "mkv", "webm"]:
+                            frames = extrair_frames_do_video(candidato, max_frames=4)
+                            if frames:
+                                resultado["imagens_bytes"].extend(frames)
+                                logger.info(f"Extraídos {len(frames)} frames do vídeo para leitura visual da tela.")
                         break
 
                 resultado["sucesso"] = True
