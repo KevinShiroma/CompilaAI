@@ -11,40 +11,36 @@ PAGE_HUB_ID = "3f4cbae044b580e48ee2d138ee614c91"
 
 CATEGORIAS_CONFIG = {
     "Lugares em SP": {
-        "nome": "📍 Lugares em SP",
+        "nome": "Lugares em SP",
         "emoji": "📍",
-        "cover": "https://images.unsplash.com/photo-1543051932-6ef9fecfbc80?q=80&w=2000&auto=format&fit=crop",
-        "page_id": "3f4cbae0-44b5-81e2-a1ff-cacd23a0c2b6"
+        "cover": "https://images.unsplash.com/photo-1543051932-6ef9fecfbc80?q=80&w=2000&auto=format&fit=crop"
     },
     "Reforma & Apartamento": {
-        "nome": "🔨 Reforma & Apartamento",
+        "nome": "Reforma & Apartamento",
         "emoji": "🔨",
         "cover": "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?q=80&w=2000&auto=format&fit=crop",
-        "page_id": "3f4cbae0-44b5-8106-94e8-c7a50008d53b"
+        "page_id": "3f4cbae0-44b5-8170-a5b1-d7c3b74e4f07"
     },
     "Culinária & Receitas": {
-        "nome": "🍝 Culinária & Receitas",
+        "nome": "Culinária & Receitas",
         "emoji": "🍝",
-        "cover": "https://images.unsplash.com/photo-1556910103-1c02745aae4d?q=80&w=2000&auto=format&fit=crop",
-        "page_id": "3f4cbae0-44b5-8142-87bf-f4bcb1eb5bc2"
+        "cover": "https://images.unsplash.com/photo-1556910103-1c02745aae4d?q=80&w=2000&auto=format&fit=crop"
     },
     "Treino & Saúde": {
-        "nome": "🏋️ Treino & Saúde",
+        "nome": "Treino & Saúde",
         "emoji": "🏋️",
-        "cover": "https://images.unsplash.com/photo-1517838277536-f5f99be501cd?q=80&w=2000&auto=format&fit=crop",
-        "page_id": "3f4cbae0-44b5-817a-bc5b-cb0238cdeac2"
+        "cover": "https://images.unsplash.com/photo-1517838277536-f5f99be501cd?q=80&w=2000&auto=format&fit=crop"
     },
     "Finanças": {
-        "nome": "💰 Finanças & Investimentos",
+        "nome": "Finanças & Investimentos",
         "emoji": "💰",
         "cover": "https://images.unsplash.com/photo-1559526324-4b87b5e36e44?q=80&w=2000&auto=format&fit=crop",
-        "page_id": "3f4cbae0-44b5-81f1-b90b-dc3ff475d44e"
+        "page_id": "3f4cbae0-44b5-81bb-bcdb-cc5966e059e6"
     },
     "Dicas Gerais": {
-        "nome": "💡 Dicas Gerais & Outros",
+        "nome": "Dicas Gerais & Outros",
         "emoji": "💡",
-        "cover": "https://images.unsplash.com/photo-1507925921958-8a62f3d1a50d?q=80&w=2000&auto=format&fit=crop",
-        "page_id": "3f4cbae0-44b5-81ad-9db1-fdf4e7c2bf39"
+        "cover": "https://images.unsplash.com/photo-1507925921958-8a62f3d1a50d?q=80&w=2000&auto=format&fit=crop"
     }
 }
 
@@ -91,11 +87,12 @@ def obter_ou_criar_pagina_categoria(notion_token: str, hub_id: str, nome_cat: st
                     if p_title == target_clean or nome_cat.lower() in p_title:
                         return b.get("id")
 
-        # Cria a página com capa e ícone se realmente não existir
+        # Cria a página com capa e ícone se realmente não existir (sem emoji duplicado no título)
+        titulo_limpo = nome_cat.replace("📍", "").replace("🔨", "").replace("🍝", "").replace("🏋️", "").replace("💰", "").replace("💡", "").strip()
         data = {
             "parent": {"page_id": hub_id},
             "properties": {
-                "title": [{"text": {"content": nome_cat}}]
+                "title": [{"text": {"content": titulo_limpo}}]
             },
             "icon": {"emoji": emoji},
             "cover": {
@@ -258,7 +255,7 @@ def sincronizar_com_notion(dica: Dict[str, Any]) -> bool:
 
         properties_db: Dict[str, Any] = {
             "Nome": {"title": [{"type": "text", "text": {"content": titulo[:100]}}]},
-            "Categoria": {"select": {"name": nome_cat_formatada[:100]}},
+            "Categoria": {"select": {"name": f"{emoji_cat} {nome_cat_formatada}"[:100]}},
             "Tópico": {"rich_text": [{"type": "text", "text": {"content": subcategoria[:100]}}]},
             "Autor": {"rich_text": [{"type": "text", "text": {"content": f"@{autor}"[:100]}}]}
         }
