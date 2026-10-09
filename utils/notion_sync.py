@@ -13,59 +13,68 @@ CATEGORIAS_CONFIG = {
     "Lugares em SP": {
         "nome": "📍 Lugares em SP",
         "emoji": "📍",
-        "cover": "https://images.unsplash.com/photo-1543051932-6ef9fecfbc80?q=80&w=2000&auto=format&fit=crop"
+        "cover": "https://images.unsplash.com/photo-1543051932-6ef9fecfbc80?q=80&w=2000&auto=format&fit=crop",
+        "page_id": "3f4cbae0-44b5-81e2-a1ff-cacd23a0c2b6"
     },
     "Reforma & Apartamento": {
         "nome": "🔨 Reforma & Apartamento",
         "emoji": "🔨",
-        "cover": "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?q=80&w=2000&auto=format&fit=crop"
+        "cover": "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?q=80&w=2000&auto=format&fit=crop",
+        "page_id": "3f4cbae0-44b5-8106-94e8-c7a50008d53b"
     },
     "Culinária & Receitas": {
         "nome": "🍝 Culinária & Receitas",
         "emoji": "🍝",
-        "cover": "https://images.unsplash.com/photo-1556910103-1c02745aae4d?q=80&w=2000&auto=format&fit=crop"
+        "cover": "https://images.unsplash.com/photo-1556910103-1c02745aae4d?q=80&w=2000&auto=format&fit=crop",
+        "page_id": "3f4cbae0-44b5-8142-87bf-f4bcb1eb5bc2"
     },
     "Treino & Saúde": {
         "nome": "🏋️ Treino & Saúde",
         "emoji": "🏋️",
-        "cover": "https://images.unsplash.com/photo-1517838277536-f5f99be501cd?q=80&w=2000&auto=format&fit=crop"
+        "cover": "https://images.unsplash.com/photo-1517838277536-f5f99be501cd?q=80&w=2000&auto=format&fit=crop",
+        "page_id": "3f4cbae0-44b5-817a-bc5b-cb0238cdeac2"
     },
     "Finanças": {
         "nome": "💰 Finanças & Investimentos",
         "emoji": "💰",
-        "cover": "https://images.unsplash.com/photo-1559526324-4b87b5e36e44?q=80&w=2000&auto=format&fit=crop"
+        "cover": "https://images.unsplash.com/photo-1559526324-4b87b5e36e44?q=80&w=2000&auto=format&fit=crop",
+        "page_id": "3f4cbae0-44b5-81f1-b90b-dc3ff475d44e"
     },
     "Dicas Gerais": {
         "nome": "💡 Dicas Gerais & Outros",
         "emoji": "💡",
-        "cover": "https://images.unsplash.com/photo-1507925921958-8a62f3d1a50d?q=80&w=2000&auto=format&fit=crop"
+        "cover": "https://images.unsplash.com/photo-1507925921958-8a62f3d1a50d?q=80&w=2000&auto=format&fit=crop",
+        "page_id": "3f4cbae0-44b5-81ad-9db1-fdf4e7c2bf39"
     }
 }
 
-def normalizar_categoria(cat_raw: str) -> tuple[str, str, str]:
-    """Retorna o nome formatado, emoji e imagem de capa da categoria correspondente."""
+def normalizar_categoria(cat_raw: str) -> tuple[str, str, str, Optional[str]]:
+    """Retorna o nome formatado, emoji, imagem de capa e ID fixo da subpágina."""
     cat_lower = (cat_raw or "").lower()
     if any(k in cat_lower for k in ["lugar", "sp", "são paulo", "café", "restaurante", "roteiro", "passeio"]):
         conf = CATEGORIAS_CONFIG["Lugares em SP"]
-        return conf["nome"], conf["emoji"], conf["cover"]
+        return conf["nome"], conf["emoji"], conf["cover"], conf.get("page_id")
     elif any(k in cat_lower for k in ["reforma", "apartamento", "apê", "obra", "decoração"]):
         conf = CATEGORIAS_CONFIG["Reforma & Apartamento"]
-        return conf["nome"], conf["emoji"], conf["cover"]
+        return conf["nome"], conf["emoji"], conf["cover"], conf.get("page_id")
     elif any(k in cat_lower for k in ["culinária", "receita", "doce", "bolo", "cozinha"]):
         conf = CATEGORIAS_CONFIG["Culinária & Receitas"]
-        return conf["nome"], conf["emoji"], conf["cover"]
+        return conf["nome"], conf["emoji"], conf["cover"], conf.get("page_id")
     elif any(k in cat_lower for k in ["treino", "saúde", "fitness", "exercício", "dieta"]):
         conf = CATEGORIAS_CONFIG["Treino & Saúde"]
-        return conf["nome"], conf["emoji"], conf["cover"]
+        return conf["nome"], conf["emoji"], conf["cover"], conf.get("page_id")
     elif any(k in cat_lower for k in ["finança", "investimento", "dinheiro", "economia"]):
         conf = CATEGORIAS_CONFIG["Finanças"]
-        return conf["nome"], conf["emoji"], conf["cover"]
+        return conf["nome"], conf["emoji"], conf["cover"], conf.get("page_id")
 
     conf_geral = CATEGORIAS_CONFIG["Dicas Gerais"]
-    return conf_geral["nome"], conf_geral["emoji"], conf_geral["cover"]
+    return conf_geral["nome"], conf_geral["emoji"], conf_geral["cover"], conf_geral.get("page_id")
 
-def obter_ou_criar_pagina_categoria(notion_token: str, hub_id: str, nome_cat: str, emoji: str, cover_url: str) -> Optional[str]:
+def obter_ou_criar_pagina_categoria(notion_token: str, hub_id: str, nome_cat: str, emoji: str, cover_url: str, pre_id: Optional[str] = None) -> Optional[str]:
     """Busca ou cria uma subpágina dedicada para a categoria dentro do Hub CompilaAI."""
+    if pre_id:
+        return pre_id
+
     headers = {
         "Authorization": f"Bearer {notion_token}",
         "Notion-Version": "2022-06-28",
@@ -75,12 +84,14 @@ def obter_ou_criar_pagina_categoria(notion_token: str, hub_id: str, nome_cat: st
     try:
         r = requests.get(f"https://api.notion.com/v1/blocks/{hub_id}/children", headers=headers, timeout=15)
         if r.status_code == 200:
+            target_clean = nome_cat.replace("📍", "").replace("🔨", "").replace("🍝", "").replace("🏋️", "").replace("💰", "").replace("💡", "").strip().lower()
             for b in r.json().get("results", []):
                 if b.get("type") == "child_page":
-                    if b.get("child_page", {}).get("title") == nome_cat:
+                    p_title = b.get("child_page", {}).get("title", "").strip().lower()
+                    if p_title == target_clean or nome_cat.lower() in p_title:
                         return b.get("id")
 
-        # Cria a página com capa e ícone
+        # Cria a página com capa e ícone se realmente não existir
         data = {
             "parent": {"page_id": hub_id},
             "properties": {
@@ -219,7 +230,7 @@ def sincronizar_com_notion(dica: Dict[str, Any]) -> bool:
     try:
         titulo = dica.get("titulo") or "Nova Anotação"
         categoria_raw = dica.get("categoria", "Dicas Gerais")
-        nome_cat_formatada, emoji_cat, cover_cat = normalizar_categoria(categoria_raw)
+        nome_cat_formatada, emoji_cat, cover_cat, pre_page_id = normalizar_categoria(categoria_raw)
         subcategoria = dica.get("subcategoria") or ""
         url_post = dica.get("url", "")
         autor = dica.get("autor", "Instagram")
@@ -268,7 +279,7 @@ def sincronizar_com_notion(dica: Dict[str, Any]) -> bool:
         )
 
         # 2. Insere na Subpágina da Categoria em formato Toggle contraído
-        cat_page_id = obter_ou_criar_pagina_categoria(notion_token, PAGE_HUB_ID, nome_cat_formatada, emoji_cat, cover_cat)
+        cat_page_id = obter_ou_criar_pagina_categoria(notion_token, PAGE_HUB_ID, nome_cat_formatada, emoji_cat, cover_cat, pre_id=pre_page_id)
         if cat_page_id:
             adicionar_post_na_pagina_categoria(notion_token, cat_page_id, dica)
 
